@@ -5,6 +5,22 @@ from collections import deque
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
+# ...existing code...
+
+
+# ...existing code...
+
+@app.route('/borrar_historial', methods=['POST'])
+def borrar_historial():
+    session['historial'] = []
+    return jsonify({'mensaje': 'Historial borrado'})
+from flask import Flask, render_template, request, jsonify, session
+import math
+from collections import deque
+
+app = Flask(__name__)
+app.secret_key = 'supersecretkey'
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -18,7 +34,6 @@ def calcular():
         frecuencia = float(data.get('frecuencia', 0))
         unidad_frecuencia = data.get('unidad_frecuencia', 'GHz')
         altura_obstaculo = float(data.get('altura_obstaculo', 0))
-        comparar_frecuencias = data.get('comparar_frecuencias', [])
     except Exception:
         return jsonify({'error': 'Datos inválidos'}), 400
 
@@ -33,7 +48,9 @@ def calcular():
     else:
         frecuencia_GHz = frecuencia
 
-    fresnel = 17.32 * math.sqrt(distancia_km / (4 * frecuencia_GHz))
+    # Fórmula según imagen: F1[m] = 8.656 * sqrt(D[km]/f[GHz])
+    fresnel_raw = 8.656 * math.sqrt(distancia_km / frecuencia_GHz)
+    fresnel = math.trunc(fresnel_raw * 1000) / 1000
 
 
     if frecuencia_GHz > 0 and distancia_km > 0:
@@ -50,37 +67,30 @@ def calcular():
             obstaculo_afecta = True
 
     explicacion = (
-        f"La zona de Fresnel calculada es de {round(fresnel,2)} m. "
-        f"La pérdida por espacio libre es de {round(perdida_espacio_libre,2) if perdida_espacio_libre else 'N/A'} dB. "
+        f"La zona de Fresnel calculada es de {fresnel} m. "
+        f"La pérdida por espacio libre es de {perdida_espacio_libre if perdida_espacio_libre else 'N/A'} dB. "
         f"{'El obstáculo afecta la zona de Fresnel.' if obstaculo_afecta else 'No hay obstrucción significativa.'}"
     )
 
     comparaciones = []
-    for freq in comparar_frecuencias:
-        try:
-            freq_val = float(freq)
-            fresnel_comp = 17.32 * math.sqrt(distancia_km / (4 * (freq_val/1000.0 if unidad_frecuencia=='MHz' else freq_val)))
-            comparaciones.append({'frecuencia': freq_val, 'fresnel': round(fresnel_comp,2)})
-        except:
-            continue
+    comparaciones = []  # Eliminado, no se calculan comparaciones
 
-    if 'historial' not in session:
-        session['historial'] = []
-    historial = session['historial']
+    # Siempre tomar el historial de la sesión, si no existe, crear uno vacío
+    historial = session.get('historial', [])
+    # Si el historial fue borrado, será una lista vacía
     resultado = {
         'distancia': distancia,
         'unidad_distancia': unidad_distancia,
         'frecuencia': frecuencia,
         'unidad_frecuencia': unidad_frecuencia,
-        'fresnel': round(fresnel,2),
-        'perdida_espacio_libre': round(perdida_espacio_libre,2) if perdida_espacio_libre else None,
+        'fresnel': fresnel,
+        'perdida_espacio_libre': perdida_espacio_libre if perdida_espacio_libre else None,
         'altura_obstaculo': altura_obstaculo,
         'obstaculo_afecta': obstaculo_afecta,
         'explicacion': explicacion,
-        'comparaciones': comparaciones
     }
     historial.append(resultado)
-    session['historial'] = historial[-10:] 
+    session['historial'] = historial[-10:]
 
     return jsonify({
         'resultado': resultado,

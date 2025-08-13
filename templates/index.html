@@ -38,10 +38,7 @@
                 <label for="altura_obstaculo" class="form-label">Altura de obstáculo (m, opcional):</label>
                 <input type="number" id="altura_obstaculo" class="form-control" step="0.1">
             </div>
-            <div class="col-md-6">
-                <label for="comparar_frecuencias" class="form-label">Comparar con otras frecuencias (separadas por coma):</label>
-                <input type="text" id="comparar_frecuencias" class="form-control" placeholder="Ej: 2.4,5,10">
-            </div>
+            <!-- Eliminado campo de comparación de frecuencias -->
             <div class="col-12 text-center">
                 <button type="submit" class="btn btn-primary px-5">Calcular</button>
             </div>
@@ -49,8 +46,11 @@
 
         <div id="resultado" class="alert alert-success mt-4"></div>
         <div id="explicacion" class="mt-2"></div>
-        <div id="comparaciones" class="mt-2"></div>
-        <div id="historial" class="mt-2"></div>
+    <!-- Eliminado div de comparaciones -->
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <div id="historial"></div>
+            <button id="borrarHistorial" class="btn btn-danger btn-sm ms-3" type="button">Borrar historial</button>
+        </div>
 
                 <canvas id="grafico" class="mt-4 border rounded" style="background:#f8f9fa;"></canvas>
             </div>

@@ -1,3 +1,13 @@
+// Borrar historial
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('borrarHistorial');
+    if (btn) {
+        btn.addEventListener('click', async function() {
+            await fetch('/borrar_historial', { method: 'POST' });
+            document.getElementById('historial').innerHTML = '<b>Historial de cálculos:</b> <i>Vacío</i>';
+        });
+    }
+});
 document.getElementById('fresnelForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -6,16 +16,13 @@ document.getElementById('fresnelForm').addEventListener('submit', async function
     const frecuencia = document.getElementById('frecuencia').value;
     const unidad_frecuencia = document.getElementById('unidad_frecuencia').value;
     const altura_obstaculo = document.getElementById('altura_obstaculo').value;
-    const comparar_frecuencias = document.getElementById('comparar_frecuencias').value
-        .split(',').map(f => f.trim()).filter(f => f.length > 0);
-
+    // Eliminado comparar_frecuencias
     const payload = {
         distancia,
         unidad_distancia,
         frecuencia,
         unidad_frecuencia,
-        altura_obstaculo,
-        comparar_frecuencias
+        altura_obstaculo
     };
 
     const response = await fetch('/calcular', {
@@ -31,25 +38,20 @@ document.getElementById('fresnelForm').addEventListener('submit', async function
     }
 
     const res = data.resultado;
-    document.getElementById('resultado').innerHTML = `<b>Radio de la zona de Fresnel:</b> ${res.fresnel} m<br>
-        <b>Pérdida por espacio libre:</b> ${res.perdida_espacio_libre ?? 'N/A'} dB<br>
-        <b>Obstáculo:</b> ${res.altura_obstaculo ? res.altura_obstaculo + ' m' : 'No especificado'}<br>
+    function formatNum(n) {
+        return (typeof n === 'number') ? n.toFixed(3) : n;
+    }
+    document.getElementById('resultado').innerHTML = `<b>Radio de la zona de Fresnel:</b> ${formatNum(res.fresnel)} m<br>
+        <b>Pérdida por espacio libre:</b> ${res.perdida_espacio_libre !== null ? formatNum(res.perdida_espacio_libre) : 'N/A'} dB<br>
+        <b>Obstáculo:</b> ${res.altura_obstaculo ? formatNum(res.altura_obstaculo) + ' m' : 'No especificado'}<br>
         <b>¿Obstruye?</b> ${res.obstaculo_afecta ? 'Sí' : 'No'}`;
     document.getElementById('explicacion').innerText = res.explicacion;
 
-    let compHtml = '';
-    if (res.comparaciones && res.comparaciones.length > 0) {
-        compHtml = '<b>Comparación de radios de Fresnel:</b><ul>';
-        res.comparaciones.forEach(c => {
-            compHtml += `<li>Frecuencia: ${c.frecuencia} ${unidad_frecuencia} → Radio: ${c.fresnel} m</li>`;
-        });
-        compHtml += '</ul>';
-    }
-    document.getElementById('comparaciones').innerHTML = compHtml;
+
 
     let histHtml = '<b>Historial de cálculos:</b><ol>';
     data.historial.forEach(h => {
-        histHtml += `<li>${h.distancia} ${h.unidad_distancia}, ${h.frecuencia} ${h.unidad_frecuencia} → ${h.fresnel} m</li>`;
+        histHtml += `<li>${formatNum(h.distancia)} ${h.unidad_distancia}, ${formatNum(h.frecuencia)} ${h.unidad_frecuencia} → ${formatNum(h.fresnel)} m</li>`;
     });
     histHtml += '</ol>';
     document.getElementById('historial').innerHTML = histHtml;
