@@ -1,13 +1,4 @@
-// Borrar historial
-document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('borrarHistorial');
-    if (btn) {
-        btn.addEventListener('click', async function() {
-            await fetch('/borrar_historial', { method: 'POST' });
-            document.getElementById('historial').innerHTML = '<b>Historial de cálculos:</b> <i>Vacío</i>';
-        });
-    }
-});
+
 document.getElementById('fresnelForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -45,16 +36,20 @@ document.getElementById('fresnelForm').addEventListener('submit', async function
         <b>Pérdida por espacio libre:</b> ${res.perdida_espacio_libre !== null ? formatNum(res.perdida_espacio_libre) : 'N/A'} dB<br>
         <b>Obstáculo:</b> ${res.altura_obstaculo ? formatNum(res.altura_obstaculo) + ' m' : 'No especificado'}<br>
         <b>¿Obstruye?</b> ${res.obstaculo_afecta ? 'Sí' : 'No'}`;
-    document.getElementById('explicacion').innerText = res.explicacion;
+    // Mostrar siempre el porcentaje de obstrucción
+    let porcentaje = '';
+    if (res.altura_obstaculo && res.fresnel) {
+        porcentaje = ` Porcentaje de obstrucción: ${((res.altura_obstaculo / res.fresnel) * 100).toFixed(1)}%.`;
+    }
+    if (res.obstaculo_afecta && res.altura_obstaculo && res.fresnel) {
+        document.getElementById('explicacion').innerHTML = `<span style=\"color:red;font-weight:bold;\">No debería funcionar: la obstrucción supera el 40% del radio de Fresnel. El enlace está afectado.${porcentaje}</span>`;
+    } else {
+        document.getElementById('explicacion').innerHTML = res.explicacion + porcentaje;
+    }
 
 
 
-    let histHtml = '<b>Historial de cálculos:</b><ol>';
-    data.historial.forEach(h => {
-        histHtml += `<li>${formatNum(h.distancia)} ${h.unidad_distancia}, ${formatNum(h.frecuencia)} ${h.unidad_frecuencia} → ${formatNum(h.fresnel)} m</li>`;
-    });
-    histHtml += '</ol>';
-    document.getElementById('historial').innerHTML = histHtml;
+
 
     graficarZonaFresnel(distancia, res.fresnel);
 });
@@ -76,8 +71,17 @@ function graficarZonaFresnel(distanciaKm, fresnel) {
     ctx.strokeStyle = "#ccc";
     ctx.stroke();
 
+    // Ajuste: el radio máximo de fresnel que se puede mostrar
+    // será el 40% de la altura del canvas
+    const radioMaxVisual = alto * 0.4;
+    // Suponemos que el valor máximo de fresnel a mostrar razonablemente es 50m
+    // (puedes ajustar este valor según tus necesidades)
+    const fresnelMax = 50;
+    // Escalamos el radio visualmente
+    const radioVisual = Math.max(5, Math.min(radioMaxVisual, (fresnel / fresnelMax) * radioMaxVisual));
+
     ctx.beginPath();
-    ctx.ellipse(ancho / 2, alto / 2, ancho / 2 - 40, fresnel * 5, 0, 0, 2 * Math.PI);
+    ctx.ellipse(ancho / 2, alto / 2, ancho / 2 - 40, radioVisual, 0, 0, 2 * Math.PI);
     ctx.strokeStyle = "#3498db";
     ctx.lineWidth = 3;
     ctx.stroke();

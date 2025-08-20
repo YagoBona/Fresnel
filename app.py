@@ -5,18 +5,10 @@ from collections import deque
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-# ...existing code...
-
-
-# ...existing code...
-
 @app.route('/borrar_historial', methods=['POST'])
 def borrar_historial():
     session['historial'] = []
     return jsonify({'mensaje': 'Historial borrado'})
-from flask import Flask, render_template, request, jsonify, session
-import math
-from collections import deque
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -62,22 +54,27 @@ def calcular():
 
 
     obstaculo_afecta = False
+    advertencia_obstruccion = None
     if altura_obstaculo > 0 and fresnel > 0:
-        if altura_obstaculo > fresnel:
+        porcentaje_obstruccion = altura_obstaculo / fresnel
+        if porcentaje_obstruccion > 0.4:
             obstaculo_afecta = True
+            advertencia_obstruccion = "No debería funcionar: la obstrucción supera el 40% del radio de Fresnel. El enlace está afectado."
 
     explicacion = (
         f"La zona de Fresnel calculada es de {fresnel} m. "
         f"La pérdida por espacio libre es de {perdida_espacio_libre if perdida_espacio_libre else 'N/A'} dB. "
         f"{'El obstáculo afecta la zona de Fresnel.' if obstaculo_afecta else 'No hay obstrucción significativa.'}"
     )
+    if advertencia_obstruccion:
+        explicacion += f"\n{advertencia_obstruccion}"
 
     comparaciones = []
-    comparaciones = []  # Eliminado, no se calculan comparaciones
+    comparaciones = [] 
 
-    # Siempre tomar el historial de la sesión, si no existe, crear uno vacío
+    
     historial = session.get('historial', [])
-    # Si el historial fue borrado, será una lista vacía
+    
     resultado = {
         'distancia': distancia,
         'unidad_distancia': unidad_distancia,
@@ -87,7 +84,7 @@ def calcular():
         'perdida_espacio_libre': perdida_espacio_libre if perdida_espacio_libre else None,
         'altura_obstaculo': altura_obstaculo,
         'obstaculo_afecta': obstaculo_afecta,
-        'explicacion': explicacion,
+    'explicacion': explicacion,
     }
     historial.append(resultado)
     session['historial'] = historial[-10:]
