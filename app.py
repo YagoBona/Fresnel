@@ -25,6 +25,8 @@ def calcular():
         unidad_distancia = data.get('unidad_distancia', 'km')
         frecuencia = float(data.get('frecuencia', 0))
         unidad_frecuencia = data.get('unidad_frecuencia', 'GHz')
+        altura_antena_a = float(data.get('altura_antena_a', 0))
+        altura_antena_b = float(data.get('altura_antena_b', 0))
         altura_obstaculo = float(data.get('altura_obstaculo', 0))
     except Exception:
         return jsonify({'error': 'Datos inválidos'}), 400
@@ -55,16 +57,26 @@ def calcular():
 
     obstaculo_afecta = False
     advertencia_obstruccion = None
+    porcentaje_obstruccion = 0
     if altura_obstaculo > 0 and fresnel > 0:
-        porcentaje_obstruccion = altura_obstaculo / fresnel
-        if porcentaje_obstruccion > 0.4:
-            obstaculo_afecta = True
-            advertencia_obstruccion = "No debería funcionar: la obstrucción supera el 40% del radio de Fresnel. El enlace está afectado."
+        altura_linea = (altura_antena_a + altura_antena_b) / 2
+        limite_inferior = altura_linea - fresnel
+        limite_superior = altura_linea + fresnel
+        if altura_obstaculo >= limite_inferior:
+            porcentaje_obstruccion = min(1.0, abs(altura_obstaculo - altura_linea) / fresnel)
+            porcentaje_obstruccion_real = abs(altura_obstaculo - altura_linea) / fresnel * 100
+            if porcentaje_obstruccion >= 0.4:
+                obstaculo_afecta = True
+                advertencia_obstruccion = f"Hay una obstrucción mayor o igual al 40% del radio de Fresnel, no funciona. Porcentaje de obstrucción: {porcentaje_obstruccion_real:.1f}%"
+            else:
+                advertencia_obstruccion = f"Funciona correctamente. Porcentaje de obstrucción: {porcentaje_obstruccion_real:.1f}%"
+        else:
+            porcentaje_obstruccion = 0
+            advertencia_obstruccion = "Funciona correctamente. Porcentaje de obstrucción: 0%"
 
     explicacion = (
         f"La zona de Fresnel calculada es de {fresnel} m. "
         f"La pérdida por espacio libre es de {perdida_espacio_libre if perdida_espacio_libre else 'N/A'} dB. "
-        f"{'El obstáculo afecta la zona de Fresnel.' if obstaculo_afecta else 'No hay obstrucción significativa.'}"
     )
     if advertencia_obstruccion:
         explicacion += f"\n{advertencia_obstruccion}"
@@ -82,9 +94,12 @@ def calcular():
         'unidad_frecuencia': unidad_frecuencia,
         'fresnel': fresnel,
         'perdida_espacio_libre': perdida_espacio_libre if perdida_espacio_libre else None,
+        'altura_antena_a': altura_antena_a,
+        'altura_antena_b': altura_antena_b,
         'altura_obstaculo': altura_obstaculo,
         'obstaculo_afecta': obstaculo_afecta,
-    'explicacion': explicacion,
+        'porcentaje_obstruccion': (porcentaje_obstruccion*100) if porcentaje_obstruccion is not None else 0,
+        'explicacion': explicacion,
     }
     historial.append(resultado)
     session['historial'] = historial[-10:]
